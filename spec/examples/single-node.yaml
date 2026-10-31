@@ -1,0 +1,13 @@
+apiVersion: toolkit/v1
+cluster:
+  name: lab
+deviceClasses:
+  - name: fast
+    default: true
+    devices:
+      - /dev/sdb
+    thinPool:
+      name: thin-pool-1
+      sizePercent: 90
+      overprovisionRatio: 10
+    fsType: xfs
