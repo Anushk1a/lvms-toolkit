@@ -16,3 +16,6 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.scripts]
+lvms-toolkit = "lvms_toolkit.cli:app"
