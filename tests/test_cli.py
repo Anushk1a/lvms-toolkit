@@ -1,3 +1,4 @@
+import yaml
 from typer.testing import CliRunner
 
 from lvms_toolkit.cli import app
@@ -29,3 +30,8 @@ def test_validate_invalid_spec(tmp_path):
     result = runner.invoke(app, ["validate", str(bad)])
     assert result.exit_code == 1
     assert "/dev/" in result.output
+
+def test_render_outputs_valid_yaml():
+    result = runner.invoke(app, ["render", "spec/examples/single-node.yaml"])
+    assert result.exit_code == 0
+    assert yaml.safe_load(result.output)["kind"] == "LVMCluster"    
