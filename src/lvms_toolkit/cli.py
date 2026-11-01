@@ -1,7 +1,11 @@
+import json
+import subprocess
+
 import typer
 import yaml
 from pydantic import ValidationError
 
+from lvms_toolkit.preflight import check_spec, read_lsblk
 from lvms_toolkit.render import render_lvmcluster, to_yaml
 from lvms_toolkit.schema import Spec, load_spec
 
@@ -47,3 +51,36 @@ def render(
     """Print the LVMCluster manifest for a spec."""
     spec = _load_or_exit(path)
     typer.echo(to_yaml(render_lvmcluster(spec)), nl=False)
+@app.command()
+def plan(
+    path: str = typer.Argument(..., help="Path to the spec YAML file"),
+    lsblk_json: str | None = typer.Option(
+        None,
+        "--lsblk-json",
+        help="Read disk info from a saved lsblk JSON file instead of this machine",
+    ),
+) -> None:
+    """Check that every device in the spec is safe to use. Changes nothing."""
+    spec = _load_or_exit(path)
+    try:
+        if lsblk_json:
+            with open(lsblk_json) as f:
+                lsblk = json.load(f)
+        else:
+            lsblk = read_lsblk()
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        typer.secho(
+            f"error: could not read disk information: {exc}",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    findings = check_spec(spec, lsblk)
+    if findings:
+        typer.secho("plan: NOT SAFE to apply", fg=typer.colors.RED, err=True)
+        for finding in findings:
+            typer.echo(f"  - {finding.device}: {finding.message}", err=True)
+        raise typer.Exit(code=1)
+
+    typer.secho("plan: all devices look safe to use", fg=typer.colors.GREEN)    
