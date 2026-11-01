@@ -64,3 +64,16 @@ def test_unknown_field_rejected():
     data["clusterr"] = {"name": "typo"}
     with pytest.raises(ValidationError):
         Spec.model_validate(data)
+
+def test_device_shared_across_classes_rejected():
+    data = valid_spec()
+    data["deviceClasses"].append(
+        {
+            "name": "slow",
+            "default": False,
+            "devices": ["/dev/sdb"],
+            "thinPool": {"name": "thin-pool-2"},
+        }
+    )
+    with pytest.raises(ValidationError, match="more than one"):
+        Spec.model_validate(data)        
